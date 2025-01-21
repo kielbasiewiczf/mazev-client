@@ -3,9 +3,7 @@ package example;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import example.domain.Request;
 import example.domain.Response;
-import example.domain.game.Cave;
-import example.domain.game.Direction;
-import example.domain.game.Player;
+import example.domain.game.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,8 +12,8 @@ import java.net.Socket;
 import java.util.Collection;
 
 public class Client {
-//    private static final String HOST = "34.44.208.210";
-    private static final String HOST = "localhost";
+    private static final String HOST = "35.208.184.138";
+//    private static final String HOST = "localhost";
     private static final int PORT = 8080;
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(Client.class);
@@ -23,7 +21,7 @@ public class Client {
     public static void main(String[] args) {
         new Client().startClient();
     }
-
+    //800 ms na pobranie i wysłanie danych, serwer odświeża się co sekundę
     public void startClient() {
         try (final var socket = new Socket(HOST, PORT);
              final var is = socket.getInputStream();
@@ -35,15 +33,15 @@ public class Client {
             logger.info("Connected to server at {}:{}", HOST, PORT);
 
             {
-                final var json = objectMapper.writeValueAsString(new Request.Authorize("1234"));
+                final var json = objectMapper.writeValueAsString(new Request.Authorize("Kh9PJSj2"));
                 writer.write(json);
                 writer.newLine();
                 writer.flush();
                 logger.info("Sent command: {}", json);
             }
 
-            Cave cave;
-            Player player;
+            Cave cave = null;
+            Player player = null;
             Collection<Response.StateLocations.ItemLocation> itemLocations;
             Collection<Response.StateLocations.PlayerLocation> playerLocations;
 
@@ -54,6 +52,7 @@ public class Client {
                 }
 
                 final var response = objectMapper.readValue(line, Response.class);
+                Player finalPlayer = player;
                 switch (response) {
                     case Response.Authorized authorized -> {
                         player = authorized.humanPlayer();
@@ -72,7 +71,11 @@ public class Client {
                         playerLocations = stateLocations.playerLocations();
                         logger.info("itemLocations: {}", itemLocations);
                         logger.info("playerLocations: {}", playerLocations);
-
+                        Printer.render(cave, playerLocations, itemLocations);
+                        final var me = playerLocations.stream().filter(playerLocation -> playerLocation.entity().equals(finalPlayer)).findAny().get();
+                        System.out.println(me.location());
+                        Finder mf = new Finder();
+                        mf.findPath(cave,playerLocations,itemLocations,me);
                         final var cmd = new Request.Command(Direction.Up);
                         final var cmdJson = objectMapper.writeValueAsString(cmd);
                         writer.write(cmdJson);
@@ -81,6 +84,8 @@ public class Client {
                         logger.info("Sent command: {}", cmd);
                     }
                 }
+                
+               //
             }
         } catch (IOException e) {
             logger.error("Error in client operation", e);
