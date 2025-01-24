@@ -12,10 +12,9 @@ import java.net.Socket;
 import java.util.Collection;
 
 public class Client {
-    private static final String HOST = "35.208.184.138";
-//    private static final String HOST = "localhost";
-    private static final int PORT = 8080;
-    private static final String filipKey = "Kh9PJSj2";
+    private static final String HOST    = "35.208.184.138";
+    private static final int PORT       = 8080;
+    private static final String KEY     = "Kh9PJSj2";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(Client.class);
 
@@ -33,9 +32,8 @@ public class Client {
              final var osr = new OutputStreamWriter(os);
              final var writer = new BufferedWriter(osr)) {
             logger.info("Connected to server at {}:{}", HOST, PORT);
-
             {
-                final var json = objectMapper.writeValueAsString(new Request.Authorize(filipKey));
+                final var json = objectMapper.writeValueAsString(new Request.Authorize(KEY));
                 writer.write(json);
                 writer.newLine();
                 writer.flush();
@@ -43,9 +41,10 @@ public class Client {
             }
 
             Cave cave = null;
-            Player player = null;
             Collection<Response.StateLocations.ItemLocation> itemLocations;
             Collection<Response.StateLocations.PlayerLocation> playerLocations;
+            int health, gold;
+            Player player = null;
 
             while (!Thread.currentThread().isInterrupted()) {
                 final var line = reader.readLine();
@@ -58,43 +57,32 @@ public class Client {
                 switch (response) {
                     case Response.Authorized authorized -> {
                         player = authorized.humanPlayer();
-                        logger.info("authorized: {}", authorized);
                     }
                     case Response.Unauthorized unauthorized -> {
-                        logger.error("unauthorized: {}", unauthorized);
                         return;
                     }
                     case Response.StateCave stateCave -> {
                         cave = stateCave.cave();
-                        logger.info("cave: {}", cave);
                     }
                     case Response.StateLocations stateLocations -> {
-                        itemLocations = stateLocations.itemLocations();
-                        playerLocations = stateLocations.playerLocations();
-                        //logger.info("itemLocations: {}", itemLocations);
-                        //logger.info("playerLocations: {}", playerLocations);
-                        BoardPrinter.render(cave, playerLocations, itemLocations);
+                        itemLocations       = stateLocations.itemLocations();
+                        playerLocations     = stateLocations.playerLocations();
+                        health              = stateLocations.health();
+                        gold                = stateLocations.gold();
+                        GameInfo gameInfo   = new GameInfo(cave, finalPlayer, playerLocations, itemLocations, health, gold);
 
-                        // START
-                        final var me = playerLocations.stream().filter(playerLocation -> playerLocation.entity().equals(finalPlayer)).findAny().get();
-                        logger.info("My location {} ", me.location());
-                        Strategy strat = new Strategy();
-                        strat.makeMove(cave, playerLocations, itemLocations, me);
-                        final var cmd = new Request.Command(Direction.Right);
-                        //STOP
 
+                        Strategy strategy = new Strategy(gameInfo);
+                        var strategyResult = strategy.makeMove();
+
+
+                        final var cmd = new Request.Command(strategyResult);
                         final var cmdJson = objectMapper.writeValueAsString(cmd);
                         writer.write(cmdJson);
                         writer.newLine();
                         writer.flush();
-                        logger.info("Sent command: {}", cmd);
                     }
                 }
-
-
-
-
-                //
             }
         } catch (IOException e) {
             logger.error("Error in client operation", e);
@@ -102,15 +90,5 @@ public class Client {
             logger.info("Client exiting");
         }
     }
-    //na przykład direction = Direction.Down
-    private static void moveMyPlayer(BufferedWriter writer, Direction direction) throws IOException {
-        final var cmd = new Request.Command(direction);
-        final var cmdJson = objectMapper.writeValueAsString(cmd);
-        writer.write(cmdJson);
-        writer.newLine();
-        writer.flush();
-        logger.info("Sent command: {}", cmd);
-    }
-
 
 }

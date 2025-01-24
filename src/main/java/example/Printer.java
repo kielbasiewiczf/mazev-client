@@ -7,45 +7,54 @@ import example.domain.game.Player;
 
 import java.util.Collection;
 
-
 public class Printer {
     public static char[] render(Cave cave,
                                 Collection<Response.StateLocations.PlayerLocation> playerLocation,
-                                Collection<Response.StateLocations.ItemLocation>  itemLocation) {
-        final var tbl = new char[cave.columns() * cave.rows()];
+                                Collection<Response.StateLocations.ItemLocation> itemLocation) {
+        final var board = new char[cave.columns() * cave.rows()];
         for (int row = 0; row < cave.rows(); row++) {
             for (int column = 0; column < cave.columns(); column++) {
                 if (cave.rock(row, column)) {
-                    tbl[row * cave.columns() + column] = 'X';
+                    board[row * cave.columns() + column] = 'X';
                 } else {
-                    tbl[row * cave.columns() + column] = ' ';
+                    board[row * cave.columns() + column] = ' ';
                 }
             }
         }
 
+
         for (final var entry : playerLocation) {
             final var location = entry.location();
-            tbl[location.row() * cave.columns() + location.column()] = switch (entry.entity()) {
-                case Player.HumanPlayer ignored -> 'P';
-                case Player.Dragon ignored -> 'D';
-            };
+            final var entity = entry.entity();
+            if (entity instanceof Player.HumanPlayer humanPlayer) {
+                if (humanPlayer.name().equals("Filip Kiełbasiewicz")) {
+                    board[location.row() * cave.columns() + location.column()] = 'F';
+                } else {
+                    board[location.row() * cave.columns() + location.column()] = 'P';
+                }
+            } else {
+                board[location.row() * cave.columns() + location.column()] = 'D';
+            }
         }
 
         for (final var entry : itemLocation) {
             final var location = entry.location();
-            tbl[location.row() * cave.columns() + location.column()] = switch (entry.entity()) {
-                case Item.Gold ignored -> 'G';
-                case Item.Health ignored -> 'H';
-            };
+
+            if (entry.entity() instanceof Item.Gold) {
+                board[location.row() * cave.columns() + location.column()] = 'G';
+                //System.out.println(entry.location());
+            } else if (entry.entity() instanceof Item.Health) {
+                board[location.row() * cave.columns() + location.column()] = 'H';
+            }
         }
 
         for (int row = 0; row < cave.rows(); row++) {
             for (int column = 0; column < cave.columns(); column++) {
-                System.out.print(tbl[row * cave.columns() + column]);
+                System.out.print(board[row * cave.columns() + column]);
             }
             System.out.println();
         }
-        return tbl;
+        return board;
     }
 
 }
