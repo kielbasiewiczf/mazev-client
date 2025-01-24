@@ -15,8 +15,10 @@ public class Client {
     private static final String HOST = "35.208.184.138";
 //    private static final String HOST = "localhost";
     private static final int PORT = 8080;
+    private static final String filipKey = "Kh9PJSj2";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(Client.class);
+
 
     public static void main(String[] args) {
         new Client().startClient();
@@ -33,7 +35,7 @@ public class Client {
             logger.info("Connected to server at {}:{}", HOST, PORT);
 
             {
-                final var json = objectMapper.writeValueAsString(new Request.Authorize("Kh9PJSj2"));
+                final var json = objectMapper.writeValueAsString(new Request.Authorize(filipKey));
                 writer.write(json);
                 writer.newLine();
                 writer.flush();
@@ -69,14 +71,18 @@ public class Client {
                     case Response.StateLocations stateLocations -> {
                         itemLocations = stateLocations.itemLocations();
                         playerLocations = stateLocations.playerLocations();
-                        logger.info("itemLocations: {}", itemLocations);
-                        logger.info("playerLocations: {}", playerLocations);
-                        Printer.render(cave, playerLocations, itemLocations);
+                        //logger.info("itemLocations: {}", itemLocations);
+                        //logger.info("playerLocations: {}", playerLocations);
+                        BoardPrinter.render(cave, playerLocations, itemLocations);
+
+                        // START
                         final var me = playerLocations.stream().filter(playerLocation -> playerLocation.entity().equals(finalPlayer)).findAny().get();
-                        System.out.println(me.location());
-                        Finder mf = new Finder();
-                        mf.findPath(cave,playerLocations,itemLocations,me);
-                        final var cmd = new Request.Command(Direction.Up);
+                        logger.info("My location {} ", me.location());
+                        Strategy strat = new Strategy();
+                        strat.makeMove(cave, playerLocations, itemLocations, me);
+                        final var cmd = new Request.Command(Direction.Right);
+                        //STOP
+
                         final var cmdJson = objectMapper.writeValueAsString(cmd);
                         writer.write(cmdJson);
                         writer.newLine();
@@ -84,8 +90,11 @@ public class Client {
                         logger.info("Sent command: {}", cmd);
                     }
                 }
-                
-               //
+
+
+
+
+                //
             }
         } catch (IOException e) {
             logger.error("Error in client operation", e);
@@ -93,4 +102,15 @@ public class Client {
             logger.info("Client exiting");
         }
     }
+    //na przykład direction = Direction.Down
+    private static void moveMyPlayer(BufferedWriter writer, Direction direction) throws IOException {
+        final var cmd = new Request.Command(direction);
+        final var cmdJson = objectMapper.writeValueAsString(cmd);
+        writer.write(cmdJson);
+        writer.newLine();
+        writer.flush();
+        logger.info("Sent command: {}", cmd);
+    }
+
+
 }

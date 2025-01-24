@@ -19,6 +19,8 @@ public class Finder {
         }
     }
 
+    // generate list of all possible moves from the player initial location (exclude rocks)
+    // można przyjąć unikanie innych graczy
     public ArrayList<Tree> generatePosibleMove(Location start, Cave cave) {
         ArrayList<Tree> moves = new ArrayList<Tree>();
         if (!cave.rock(start.row() - 1, start.column()))
@@ -32,18 +34,19 @@ public class Finder {
         return moves;
     }
 
-    public void findPath(Cave cave,
-                         Collection<Response.StateLocations.PlayerLocation> playerLocation,
-                         Collection<Response.StateLocations.ItemLocation> itemLocation,
-                         Response.StateLocations.PlayerLocation player) {
+    public void findShortestPath(Cave cave,
+                                 Collection<Response.StateLocations.PlayerLocation> playerLocation,
+                                 Collection<Response.StateLocations.ItemLocation> itemLocation,
+                                 Response.StateLocations.PlayerLocation player) {
         final var cost = new int[cave.columns() * cave.rows()];
         for (int i = 0; i < cost.length; i++) {
             cost[i] = 0;
         }
+        // zero cost for path to myself
         cost[player.location().row() * cave.columns() + player.location().column()] = 0;
-        this.printCost(cost, cave);
-        final var usedLocation = new ArrayList<Location>();
-        usedLocation.add(player.location());
+        //this.printCost(cost, cave);
+        final var visitedLocation = new ArrayList<Location>();
+        visitedLocation.add(player.location());
         final var usedItem = new ArrayList<Tree>();
         usedItem.add(new Tree(player.location(), player.location()));
 
@@ -51,40 +54,36 @@ public class Finder {
         for (var moves : posibleMoves) {
             var parent = moves.parent;
             var move = moves.move;
-            if (usedLocation.contains(move)) {
-                continue;
-            } else {
-                usedLocation.add(move);
+            if (!visitedLocation.contains(move)) {
+                visitedLocation.add(move);
                 usedItem.add(moves);
                 cost[move.row() * cave.columns() + move.column()] = cost[parent.row() * cave.columns() + parent.column()] + 1;
             }
         }
         for (var moves : posibleMoves) {
-            rekurencja(moves.move, cave, cost, usedLocation, usedItem, 12);
+            recursion(moves.move, cave, cost, visitedLocation, usedItem, 12);
         }
         final var gold = itemLocation.stream().filter(itemLocation1 -> itemLocation1.entity() instanceof Item.Gold).findAny().stream().collect(Collectors.toCollection(ArrayList::new));
-        final var locationWithGold = usedLocation.stream().filter(location->gold.contains(location)).findAny().get();
-        System.out.println(locationWithGold);
+        final var locationWithGold = visitedLocation.stream().filter(location->gold.contains(location)).findAny().get();
+        //System.out.println(locationWithGold);
 
 
     }
-    public void rekurencja(Location start, Cave cave, int[] cost, ArrayList<Location> usedLocation, ArrayList<Tree> usedItem, int depth) {
-        ArrayList<Tree> posibleMoves = this.generatePosibleMove(start, cave);
-        for (var moves : posibleMoves) {
+    public void recursion(Location start, Cave cave, int[] cost, ArrayList<Location> usedLocation, ArrayList<Tree> usedItem, int depth) {
+        ArrayList<Tree> possibleMoves = this.generatePosibleMove(start, cave);
+        for (var moves : possibleMoves) {
             var parent = moves.parent;
             var move = moves.move;
-            if (usedLocation.contains(move)) {
-                continue;
-            } else {
+            if (!usedLocation.contains(move)) {
                 usedLocation.add(move);
                 usedItem.add(moves);
                 cost[move.row() * cave.columns() + move.column()] = cost[start.row() * cave.columns() + start.column()] + 1;
             }
         }
-        System.out.println(depth);
+        //System.out.println(depth);
         if (depth > 0)
-            for (var moves : posibleMoves) {
-                rekurencja(moves.move, cave, cost, usedLocation, usedItem, depth - 1);
+            for (var moves : possibleMoves) {
+                recursion(moves.move, cave, cost, usedLocation, usedItem, depth - 1);
             }
     }
 
