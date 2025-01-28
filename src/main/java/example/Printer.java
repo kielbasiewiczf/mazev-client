@@ -27,11 +27,9 @@ public class Printer {
             final var location = entry.location();
             final var entity = entry.entity();
             if (entity instanceof Player.HumanPlayer humanPlayer) {
-                if (humanPlayer.name().equals("Filip Kiełbasiewicz")) {
+                if (humanPlayer.name().equals("Filip Kiełbasiewicz"))
                     board[location.row() * cave.columns() + location.column()] = 'F';
-                } else {
-                    board[location.row() * cave.columns() + location.column()] = 'P';
-                }
+                else board[location.row() * cave.columns() + location.column()] = 'P';
             } else {
                 board[location.row() * cave.columns() + location.column()] = 'D';
             }
@@ -42,7 +40,6 @@ public class Printer {
 
             if (entry.entity() instanceof Item.Gold) {
                 board[location.row() * cave.columns() + location.column()] = 'G';
-                //System.out.println(entry.location());
             } else if (entry.entity() instanceof Item.Health) {
                 board[location.row() * cave.columns() + location.column()] = 'H';
             }

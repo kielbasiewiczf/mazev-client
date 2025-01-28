@@ -7,9 +7,11 @@ import example.domain.game.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.swing.plaf.nimbus.State;
 import java.io.*;
 import java.net.Socket;
 import java.util.Collection;
+
 
 public class Client {
     private static final String HOST    = "35.208.184.138";
@@ -40,11 +42,12 @@ public class Client {
                 logger.info("Sent command: {}", json);
             }
 
+            // inicjalizacja, game info
             Cave cave = null;
             Collection<Response.StateLocations.ItemLocation> itemLocations;
             Collection<Response.StateLocations.PlayerLocation> playerLocations;
             int health, gold;
-            Player player = null;
+            Player myPlayer = null;
 
             while (!Thread.currentThread().isInterrupted()) {
                 final var line = reader.readLine();
@@ -53,10 +56,9 @@ public class Client {
                 }
 
                 final var response = objectMapper.readValue(line, Response.class);
-                Player finalPlayer = player;
                 switch (response) {
                     case Response.Authorized authorized -> {
-                        player = authorized.humanPlayer();
+                        myPlayer = authorized.humanPlayer();
                     }
                     case Response.Unauthorized unauthorized -> {
                         return;
@@ -64,18 +66,18 @@ public class Client {
                     case Response.StateCave stateCave -> {
                         cave = stateCave.cave();
                     }
+                    // pobieramy aktualne info o mapie...
                     case Response.StateLocations stateLocations -> {
                         itemLocations       = stateLocations.itemLocations();
                         playerLocations     = stateLocations.playerLocations();
                         health              = stateLocations.health();
                         gold                = stateLocations.gold();
-                        GameInfo gameInfo   = new GameInfo(cave, finalPlayer, playerLocations, itemLocations, health, gold);
-
-
+                        // agreguję dane w jednym recordzie
+                        GameInfo gameInfo   = new GameInfo(cave, myPlayer, playerLocations, itemLocations, health, gold);
+                        Printer.render(cave, playerLocations, itemLocations);
                         Strategy strategy = new Strategy(gameInfo);
                         var strategyResult = strategy.makeMove();
-
-
+                        logger.info("HP: {}, Gold: {}", health, gold);
                         final var cmd = new Request.Command(strategyResult);
                         final var cmdJson = objectMapper.writeValueAsString(cmd);
                         writer.write(cmdJson);
