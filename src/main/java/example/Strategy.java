@@ -18,6 +18,8 @@ public class Strategy {
         this.gameInfo = gameInfo;
     }
 
+
+    // wykonaj ruch w stronę zlota/hp
     public Direction makeMove() {
         Cave cave = this.gameInfo.cave();
         Player player = this.gameInfo.currentPlayer();
