@@ -7,7 +7,6 @@ import example.domain.game.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.plaf.nimbus.State;
 import java.io.*;
 import java.net.Socket;
 import java.util.Collection;
@@ -66,15 +65,16 @@ public class Client {
                     case Response.StateCave stateCave -> {
                         cave = stateCave.cave();
                     }
-                    // pobieramy aktualne info o mapie...
+                    // pobieranm aktualne info o mapie...
                     case Response.StateLocations stateLocations -> {
                         itemLocations       = stateLocations.itemLocations();
                         playerLocations     = stateLocations.playerLocations();
                         health              = stateLocations.health();
                         gold                = stateLocations.gold();
+
                         // agreguję dane w jednym recordzie
                         GameInfo gameInfo   = new GameInfo(cave, myPlayer, playerLocations, itemLocations, health, gold);
-                        Printer.render(cave, playerLocations, itemLocations);
+                        Printer.boardPrinter(cave, playerLocations, itemLocations);
                         Strategy strategy = new Strategy(gameInfo);
                         var strategyResult = strategy.makeMove();
                         logger.info("HP: {}, Gold: {}", health, gold);

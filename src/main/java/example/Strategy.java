@@ -13,13 +13,17 @@ public class Strategy {
     public static final int HEALTH_CHECK = 121;
     private final GameInfo gameInfo;
 
-    //konstruktor klasy Strategy
+
     public Strategy(GameInfo gameInfo) {
         this.gameInfo = gameInfo;
     }
 
+    //TODO: funkcja lokalizująca innych graczy
+    //fragment kodu usunięty ze względu na problem z indeksami, który odkryłem pod sam koniec zajęć
+    //ze względu na dość krótki kod nie wprowadzałem docstringów w miejsce niektórych komentarzy
+    //TODO: Jak wyżej
 
-    // wykonaj ruch w stronę zlota/hp
+    // główna funkcja strategiczna zwracająca ruch w kierunku najbliższego itemu wybranego rodzaju
     public Direction makeMove() {
         Cave cave = this.gameInfo.cave();
         Player player = this.gameInfo.currentPlayer();
@@ -42,9 +46,8 @@ public class Strategy {
         if (gameInfo.health() <= HEALTH_CHECK && !healthItems.isEmpty()) items = healthItems;
         else if (!goldItems.isEmpty()) items = goldItems;
         else return null;
-        // dla każdego hp itemu znajdujemy jego położenie na mapie i wybieramy najbliższe HP...
-        // backtrackujemy wierzchołki od HP do naszej pozycji TO SAMO DLA GOLDA
-        // rozważyć jeśli zloto lub HP otoczone kamieniami
+        // dla każdego itemu (hp/golda) znajdujemy jego położenie na mapie i wybieramy najbliższy item...
+        // backtrackujemy wierzchołki od itemu do naszej aktualnej pozycji
         int minDist = MapUtilities.DISTANCE_INFINITY;
         int minDistIndex = 0;
         for (var item : items) {
@@ -53,10 +56,9 @@ public class Strategy {
                 minDistIndex = MapUtilities.coordinates2DTo1D(item.location().row(), item.location().column(), cave);
             }
         }
+        // silna nierówność, aby uniknąć problemu szukania itemów otoczonych kamieniami
         if (minDist < MapUtilities.DISTANCE_INFINITY) {
-            //zmiana
-            //for(var playerLoc : Collection<Response.StateLocations.PlayerLocation> playerLocations)
-            //zmiana
+
             List<Integer> path = backtrackFromItem(row, minDistIndex, nodes);
             int currentIndex = path.get(0), nextIndex = path.get(1);
             Location nextLocation = MapUtilities.coordinates1DTo2D(nextIndex, cave);
@@ -70,7 +72,7 @@ public class Strategy {
     private MapUtilities.Node[] calculateDistancesUsingDijkstra(int start_row, int start_column) {
         Cave cave = gameInfo.cave();
 
-        // tworze obiekt typu Node dla każdej kratki na mapie
+        // inicjalizacja obiektu typu Node dla każdej kratki na mapie
         var nodes = new MapUtilities.Node[gameInfo.cave().columns() * gameInfo.cave().rows()];
         for (int i = 0; i < nodes.length; i++)
             nodes[i] = new MapUtilities.Node(i);
@@ -104,7 +106,7 @@ public class Strategy {
         int myPosition = MapUtilities.coordinates2DTo1D(start_row, start_column, cave);
         nodes[myPosition].distance = 0;
 
-        //komparator, inicjalizacja kolejki priorytetowej
+        // komparator, inicjalizacja kolejki priorytetowej
         PriorityQueue<MapUtilities.Node> queue = new PriorityQueue<>((MapUtilities.Node x, MapUtilities.Node y) -> {
             if (x.distance < y.distance) return -1;
             else return 1;
@@ -131,32 +133,7 @@ public class Strategy {
         return nodes;
     }
 
-    private boolean[] calculateDragonCoordinates() {
-        var dragonTiles = new boolean[gameInfo.cave().columns() * gameInfo.cave().rows()];
-        for (var location : gameInfo.players()) {
-            if (location.entity() instanceof Player.Dragon) {
-                Player.Dragon dragon = (Player.Dragon) location.entity();
-                Player.Dragon.Size dragonSize = dragon.size();
-                int radius = 0;
-                switch (dragonSize) {
-                    case Small -> radius = MapUtilities.DRAGON_SMALL_RADIUS;
-                    case Medium -> radius = MapUtilities.DRAGON_MEDIUM_RADIUS;
-                    case Large -> radius = MapUtilities.DRAGON_LARGE_RADIUS;
-                    default -> radius = 0;
-                }
-
-                int row = location.location().row();
-                int column = location.location().column();
-                for (int i = row - radius; i <= row + radius; i++)
-                    for (int j = column - radius; j <= column + radius; j++)
-                        dragonTiles[MapUtilities.coordinates2DTo1D(i, j, gameInfo.cave())] = true;
-
-            }
-        }
-        return dragonTiles;
-    }
-
-    // zwraca ścieżkę (jako listę indeksów) w kierunku od poczatku do konca
+    // zwraca ścieżkę (jako listę indeksów) w kolejności od poczatku do konca
     List<Integer> backtrackFromItem(int startIndex, int targetIndex, MapUtilities.Node[] nodes) {
         List<Integer> path = new ArrayList<>();
         MapUtilities.Node currentNode = nodes[targetIndex];
@@ -175,4 +152,41 @@ public class Strategy {
         else if (endRow == startRow + 1 && endColumn == startColumn) return Direction.Down;
         else return null;
     }
+
+    // zaznaczamy kratki w promieniu rażenia smoka
+    private boolean[] calculateDragonCoordinates() {
+        var dragonTiles = new boolean[gameInfo.cave().columns() * gameInfo.cave().rows()];
+        for (var location : gameInfo.players()) {
+            if (location.entity() instanceof Player.Dragon) {
+                Player.Dragon dragon = (Player.Dragon) location.entity();
+                Player.Dragon.Size dragonSize = dragon.size();
+                //TODO: Jak konstrukcja switcha powinna wyglądać bardziej idiomatycznie dla Javy?
+                // poniżej zakomentowana stara wersja switcha
+//              int radius = ;
+//                switch (dragonSize) {
+//                    case Small -> radius = MapUtilities.DRAGON_SMALL_RADIUS;
+//                    case Medium -> radius = MapUtilities.DRAGON_MEDIUM_RADIUS;
+//                    case Large -> radius = MapUtilities.DRAGON_LARGE_RADIUS;
+//                    default -> radius = 0;
+//                }
+                // Wersja druga switcha (bardziej idiomatyczna dla współczesnej Javy?)
+                int radius = switch ( dragonSize ) {
+                    case Small -> MapUtilities.DRAGON_SMALL_RADIUS;
+                    case Medium -> MapUtilities.DRAGON_MEDIUM_RADIUS;
+                    case Large -> MapUtilities.DRAGON_LARGE_RADIUS;
+                    default -> 0;
+                };
+
+                int row = location.location().row();
+                int column = location.location().column();
+                for (int i = row - radius; i <= row + radius; i++)
+                    for (int j = column - radius; j <= column + radius; j++)
+                        dragonTiles[MapUtilities.coordinates2DTo1D(i, j, gameInfo.cave())] = true;
+
+            }
+        }
+        return dragonTiles;
+    }
+
+
 }

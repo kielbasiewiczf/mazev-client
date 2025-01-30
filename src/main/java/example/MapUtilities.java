@@ -14,13 +14,14 @@ public class MapUtilities {
     public static final int DRAGON_LARGE_RADIUS = 3;
     public static final int NO_PARENT = -1;
 
+    // konstruktor dla Node do Dijkstry, parent wierzchołka jest tylko indexem dla uproszczenia pisania algorytmu
     public static class Node {
         public int index;
         public int distance;
         public int parentIndex;
         public boolean visited;
 
-        //konstruktor dla Node do Dijkstry
+
         public Node(int index) {
             this.index = index;
             this.distance = DISTANCE_INFINITY;
@@ -34,6 +35,8 @@ public class MapUtilities {
             this.parentIndex = NO_PARENT;
             this.visited = false;
         }
+
+
     }
 
     public static int coordinates2DTo1D(int row, int column, Cave cave) {
@@ -42,7 +45,6 @@ public class MapUtilities {
         return row * cave.columns() + column;
     }
 
-    // wersja dla typu Location
     public static int coordinates2DTo1D(Location coords, Cave cave) {
         int row = coords.row() % cave.rows();
         int column = coords.column() % cave.columns();

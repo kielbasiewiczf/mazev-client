@@ -8,9 +8,9 @@ import example.domain.game.Player;
 import java.util.Collection;
 
 public class Printer {
-    public static char[] render(Cave cave,
-                                Collection<Response.StateLocations.PlayerLocation> playerLocation,
-                                Collection<Response.StateLocations.ItemLocation> itemLocation) {
+    public static char[] boardPrinter(Cave cave,
+                                      Collection<Response.StateLocations.PlayerLocation> playerLocation,
+                                      Collection<Response.StateLocations.ItemLocation> itemLocation) {
         final var board = new char[cave.columns() * cave.rows()];
         for (int row = 0; row < cave.rows(); row++) {
             for (int column = 0; column < cave.columns(); column++) {
@@ -21,7 +21,6 @@ public class Printer {
                 }
             }
         }
-
 
         for (final var entry : playerLocation) {
             final var location = entry.location();
@@ -51,6 +50,7 @@ public class Printer {
             }
             System.out.println();
         }
+
         return board;
     }
 
